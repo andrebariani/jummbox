@@ -344,6 +344,16 @@ export class Note {
 		}
 		return mainInterval;
 	}
+
+	public clone(): Note {
+		const newNote: Note = new Note(-1, this.start, this.end, 6);
+		newNote.pitches = this.pitches.concat();
+		newNote.pins = [];
+		for (const pin of this.pins) {
+			newNote.pins.push(makeNotePin(pin.interval, pin.time, pin.volume));
+		}
+		return newNote;
+	}
 }
 
 export class Pattern {
@@ -352,14 +362,8 @@ export class Pattern {
 
 	public cloneNotes(): Note[] {
 		const result: Note[] = [];
-		for (const oldNote of this.notes) {
-			const newNote: Note = new Note(-1, oldNote.start, oldNote.end, 6);
-			newNote.pitches = oldNote.pitches.concat();
-			newNote.pins = [];
-			for (const oldPin of oldNote.pins) {
-				newNote.pins.push(makeNotePin(oldPin.interval, oldPin.time, oldPin.volume));
-			}
-			result.push(newNote);
+		for (const note of this.notes) {
+			result.push(note.clone());
 		}
 		return result;
 	}
@@ -982,21 +986,6 @@ export class Instrument {
 			this.chord = Config.chords.findIndex(chord => chord.name == instrumentObject["chord"]);
 			if (this.chord == -1) this.chord = 2;
 
-			// Arpeggio speed
-			if (this.chord == 2 && instrumentObject["arpeggioSpeed"] != undefined) {
-				this.arpeggioSpeed = instrumentObject["arpeggioSpeed"];
-			}
-			else {
-				this.arpeggioSpeed = (useSlowerRhythm) ? 9 : 12; // Decide whether to import arps as x3/4 speed
-			}
-
-			if (instrumentObject["fastTwoNoteArp"] != undefined) {
-				this.fastTwoNoteArp = instrumentObject["fastTwoNoteArp"];
-			}
-			else {
-				this.fastTwoNoteArp = useFastTwoNoteArp;
-			}
-
 		} else if (this.type == InstrumentType.spectrum) {
 			if (instrumentObject["spectrum"] != undefined) {
 				for (let i: number = 0; i < Config.spectrumControlPoints; i++) {
@@ -1057,7 +1046,7 @@ export class Instrument {
 			if (this.chord == -1) this.chord = 0;
 		} else if (this.type == InstrumentType.pwm) {
 			if (instrumentObject["pulseWidth"] != undefined) {
-				this.pulseWidth = clamp(0, Config.pulseWidthRange + 1, instrumentObject["pulseWidth"]);
+				this.pulseWidth = clamp(0, Config.pulseWidthRange + 1, Math.round(instrumentObject["pulseWidth"]));
 			} else {
 				this.pulseWidth = Config.pulseWidthRange;
 			}
@@ -1123,21 +1112,6 @@ export class Instrument {
 			this.chord = Config.chords.findIndex(chord => chord.name == instrumentObject["chord"]);
 			if (this.chord == -1) this.chord = 2;
 
-			// Arpeggio speed
-			if (this.chord == 2 && instrumentObject["arpeggioSpeed"] != undefined) {
-				this.arpeggioSpeed = instrumentObject["arpeggioSpeed"];
-			}
-			else {
-				this.arpeggioSpeed = (useSlowerRhythm) ? 9 : 12; // Decide whether to import arps as x3/4 speed
-			}
-
-			if (instrumentObject["fastTwoNoteArp"] != undefined) {
-				this.fastTwoNoteArp = instrumentObject["fastTwoNoteArp"];
-			}
-			else {
-				this.fastTwoNoteArp = useFastTwoNoteArp;
-			}
-
 			// The original chorus setting had an option that now maps to two different settings. Override those if necessary.
 			if (instrumentObject["chorus"] == "custom harmony") {
 				this.interval = 2;
@@ -1166,21 +1140,6 @@ export class Instrument {
 
 			this.chord = Config.chords.findIndex(chord => chord.name == instrumentObject["chord"]);
 			if (this.chord == -1) this.chord = 3;
-
-			// Arpeggio speed
-			if (this.chord == 2 && instrumentObject["arpeggioSpeed"] != undefined) {
-				this.arpeggioSpeed = instrumentObject["arpeggioSpeed"];
-			}
-			else {
-				this.arpeggioSpeed = (useSlowerRhythm) ? 9 : 12; // Decide whether to import arps as x3/4 speed
-			}
-
-			if (instrumentObject["fastTwoNoteArp"] != undefined) {
-				this.fastTwoNoteArp = instrumentObject["fastTwoNoteArp"];
-			}
-			else {
-				this.fastTwoNoteArp = useFastTwoNoteArp;
-			}
 
 			this.algorithm = Config.algorithms.findIndex(algorithm => algorithm.name == instrumentObject["algorithm"]);
 			if (this.algorithm == -1) this.algorithm = 0;
@@ -1245,21 +1204,6 @@ export class Instrument {
 			this.chord = Config.chords.findIndex(chord => chord.name == instrumentObject["chord"]);
 			if (this.chord == -1) this.chord = 2;
 
-			// Arpeggio speed
-			if (this.chord == 2 && instrumentObject["arpeggioSpeed"] != undefined) {
-				this.arpeggioSpeed = instrumentObject["arpeggioSpeed"];
-			}
-			else {
-				this.arpeggioSpeed = (useSlowerRhythm) ? 9 : 12; // Decide whether to import arps as x3/4 speed
-			}
-
-			if (instrumentObject["fastTwoNoteArp"] != undefined) {
-				this.fastTwoNoteArp = instrumentObject["fastTwoNoteArp"];
-			}
-			else {
-				this.fastTwoNoteArp = useFastTwoNoteArp;
-			}
-
 			// The original chorus setting had an option that now maps to two different settings. Override those if necessary.
 			if (instrumentObject["chorus"] == "custom harmony") {
 				this.interval = 2;
@@ -1303,6 +1247,23 @@ export class Instrument {
 			}
 		} else {
 			throw new Error("Unrecognized instrument type.");
+		}
+
+		if (this.type != InstrumentType.mod) {
+			// Arpeggio speed
+			if (this.chord == 2 && instrumentObject["arpeggioSpeed"] != undefined) {
+				this.arpeggioSpeed = instrumentObject["arpeggioSpeed"];
+			}
+			else {
+				this.arpeggioSpeed = (useSlowerRhythm) ? 9 : 12; // Decide whether to import arps as x3/4 speed
+			}
+
+			if (instrumentObject["fastTwoNoteArp"] != undefined) {
+				this.fastTwoNoteArp = instrumentObject["fastTwoNoteArp"];
+			}
+			else {
+				this.fastTwoNoteArp = useFastTwoNoteArp;
+			}
 		}
 	}
 
@@ -1846,6 +1807,14 @@ export class Song {
 						spectrumBits.write(Config.spectrumControlPointBits, instrument.spectrumWave.spectrum[i]);
 					}
 					spectrumBits.encodeBase64(buffer);
+					buffer.push(SongTagCode.vibrato, base64IntToCharCode[instrument.vibrato]);
+					// Custom vibrato settings
+					if (instrument.vibrato == Config.vibratos.length) {
+						buffer.push(base64IntToCharCode[Math.round(instrument.vibratoDepth * 25)]);
+						buffer.push(base64IntToCharCode[instrument.vibratoSpeed]);
+						buffer.push(base64IntToCharCode[instrument.vibratoDelay]);
+						buffer.push(base64IntToCharCode[instrument.vibratoType]);
+					}
 					if (instrument.chord == 2) {
 						buffer.push(SongTagCode.arpeggioSpeed, base64IntToCharCode[instrument.arpeggioSpeed]);
 						buffer.push(base64IntToCharCode[+instrument.fastTwoNoteArp]); // Two note arp setting piggybacks on this
@@ -3000,10 +2969,12 @@ export class Song {
 					let volumeCap: number = this.getVolumeCapForSetting(isModChannel, this.channels[channel].instruments[pattern.instrument].modSettings[Config.modCount - note.pitches[0] - 1]);
 					const pointArray: Object[] = [];
 					for (const pin of note.pins) {
+						let useVol: number = isModChannel ? Math.round(pin.volume) : Math.round(pin.volume * 100 / volumeCap);
 						pointArray.push({
 							"tick": (pin.time + note.start) * Config.rhythms[this.rhythm].stepsPerBeat / Config.partsPerBeat,
 							"pitchBend": pin.interval,
-							"volume": Math.round(pin.volume * 100 / volumeCap),
+							"volume": useVol,
+							"forMod": isModChannel,
 						});
 					}
 
@@ -3239,7 +3210,17 @@ export class Song {
 
 								let volumeCap: number = this.getVolumeCapForSetting(isModChannel, channel.instruments[pattern.instrument].modSettings[Config.modCount - note.pitches[0] - 1]);
 
-								const volume: number = (pointObject["volume"] == undefined) ? volumeCap : Math.max(0, Math.min(volumeCap, Math.round((pointObject["volume"] | 0) * volumeCap / 100)));
+								// The strange volume formula used for notes is not needed for mods. Some rounding errors were possible.
+								// A "forMod" signifier was added to new JSON export to detect when the higher precision export was used in a file.
+								let volume: number;
+								if (pointObject["volume"] == undefined) {
+									volume = volumeCap;
+								} else if (pointObject["forMod"] == undefined) {
+									volume = Math.max(0, Math.min(volumeCap, Math.round((pointObject["volume"] | 0) * volumeCap / 100)));
+								}
+								else {
+									volume = ((pointObject["forMod"] | 0) > 0) ? Math.round(pointObject["volume"] | 0) : Math.max(0, Math.min(volumeCap, Math.round((pointObject["volume"] | 0) * volumeCap / 100)));
+								}
 
 								if (time > this.beatsPerBar * Config.partsPerBeat) continue;
 								if (note.pins.length == 0) {
@@ -3474,10 +3455,11 @@ export class Synth {
 										for (let pinIdx = 0; pinIdx < note.pins.length; pinIdx++) {
 											if (note.pins[pinIdx].time + note.start > partsInBar) {
 												const transitionLength: number = note.pins[pinIdx].time - note.pins[pinIdx - 1].time;
-												const toNextBarLength: number = partsInBar - note.pins[pinIdx - 1].time;
+												const toNextBarLength: number = partsInBar - note.start - note.pins[pinIdx - 1].time;
 												const deltaVolume: number = note.pins[pinIdx].volume - note.pins[pinIdx - 1].volume;
 
 												latestPinValues[Config.modCount - 1 - note.pitches[0]] = Math.round(note.pins[pinIdx - 1].volume + deltaVolume * toNextBarLength / transitionLength);
+												pinIdx = note.pins.length;
 											}
 										}
 									}
@@ -3627,6 +3609,7 @@ export class Synth {
 		let endBar: number = enableOutro ? this.song.barCount : (this.song.loopStart + this.song.loopLength);
 		let hasTempoMods: boolean = false;
 		let hasNextBarMods: boolean = false;
+		let prevTempo: number = this.song.tempo;
 
 		// Determine if any tempo or next bar mods happen anywhere in the window
 		for (let channel: number = this.song.pitchChannelCount + this.song.noiseChannelCount; channel < this.song.getChannelCount(); channel++) {
@@ -3646,11 +3629,62 @@ export class Synth {
 			}
 		}
 
+		// If intro is not zero length, determine what the "entry" tempo is going into the start part, by looking at mods that came before...
+		if (startBar > 0) {
+			let latestTempoPin: number | null = null;
+			let latestTempoValue: number = 0;
+
+			for (let bar: number = startBar - 1; bar >= 0; bar--) {
+				for (let channel: number = this.song.pitchChannelCount + this.song.noiseChannelCount; channel < this.song.getChannelCount(); channel++) {
+					let pattern = this.song.getPattern(channel, bar);
+
+					if (pattern != null) {
+						let instrumentIdx: number = this.song.getPatternInstrument(channel, bar);
+						let instrument: Instrument = this.song.channels[channel].instruments[instrumentIdx];
+
+						let partsInBar: number = this.findPartsInBar(bar);
+
+						for (const note of pattern.notes) {
+							if (instrument.modSettings[Config.modCount - 1 - note.pitches[0]] == ModSetting.mstTempo && instrument.modStatuses[Config.modCount - 1 - note.pitches[0]] == ModStatus.msForSong) {
+								if (note.start < partsInBar && (latestTempoPin == null || note.end > latestTempoPin)) {
+									if (note.end <= partsInBar) {
+										latestTempoPin = note.end;
+										latestTempoValue = note.pins[note.pins.length - 1].volume;
+									}
+									else {
+										latestTempoPin = partsInBar;
+										// Find the pin where bar change happens, and compute where pin volume would be at that time
+										for (let pinIdx = 0; pinIdx < note.pins.length; pinIdx++) {
+											if (note.pins[pinIdx].time + note.start > partsInBar) {
+												const transitionLength: number = note.pins[pinIdx].time - note.pins[pinIdx - 1].time;
+												const toNextBarLength: number = partsInBar - note.start - note.pins[pinIdx - 1].time;
+												const deltaVolume: number = note.pins[pinIdx].volume - note.pins[pinIdx - 1].volume;
+
+												latestTempoValue = Math.round(note.pins[pinIdx - 1].volume + deltaVolume * toNextBarLength / transitionLength);
+												pinIdx = note.pins.length;
+											}
+										}
+									}
+								}
+							}
+						}
+
+						
+					}
+				}
+
+				// Done once you process a pattern where tempo mods happened, since the search happens backward
+				if (latestTempoPin != null) {
+					prevTempo = this.song.modValueToReal(latestTempoValue, ModSetting.mstTempo);
+					bar = -1;
+				}
+			}
+		}
+
 		if (hasTempoMods || hasNextBarMods) {
 			// Run from start bar to end bar and observe looping, computing average tempo across each bar
 			let bar: number = startBar;
 			let ended: boolean = false;
-			let prevTempo: number = this.song.tempo;
 			let totalSamples: number = 0;
 
 			while (!ended) {
@@ -3703,7 +3737,7 @@ export class Synth {
 																//
 																// This is an expression of samples per tick "instantaneously", and it can be multiplied by a number of ticks to get a sample count.
 																// But this isn't the full story. BeatsPerMin, e.g. tempo, changes throughout the interval so it has to be expressed in terms of ticks, "t"
-																// ( Also from now on PartsPerBeat, TicksPerPart, and SecPerMin are compbined into one scalar, called "BPMScalar" )
+																// ( Also from now on PartsPerBeat, TicksPerPart, and SecPerMin are combined into one scalar, called "BPMScalar" )
 																// Substituting BPM for a step variable that moves with respect to the current tick, we get
 																// SamplesPerTick = SamplesPerSec / (BPMScalar * ( (EndTempo - StartTempo / TickLength) * t + StartTempo ) )
 																//
@@ -4093,7 +4127,6 @@ export class Synth {
 		// Check the bounds of the playhead:
 		while (this.tickSampleCountdown <= 0) this.tickSampleCountdown += samplesPerTick;
 		if (this.tickSampleCountdown > samplesPerTick) this.tickSampleCountdown = samplesPerTick;
-
 		if (playSong) {
 			if (this.beat >= this.song.beatsPerBar) {
 				this.bar++;
@@ -4503,6 +4536,7 @@ export class Synth {
 			// Set samples per tick if song tempo mods changed it
 			if (this.isModActive(ModSetting.mstTempo, true)) {
 				samplesPerTick = this.getSamplesPerTick();
+				this.tickSampleCountdown = Math.min(this.tickSampleCountdown, samplesPerTick);
 			}
 
 			// Bound LFO times to be within their period (to keep values from getting large)
@@ -5205,11 +5239,10 @@ export class Synth {
 				customVolumeStart = Synth.expressionToVolumeMult(customVolumeTickStart + (customVolumeTickEnd - customVolumeTickStart) * startRatio);
 				customVolumeEnd = Synth.expressionToVolumeMult(customVolumeTickStart + (customVolumeTickEnd - customVolumeTickStart) * endRatio);
 			} else {
-				customVolumeStart = customVolumeTickStart + (customVolumeTickEnd - customVolumeTickStart) * startRatio;
-				customVolumeEnd = customVolumeTickStart + (customVolumeTickEnd - customVolumeTickStart) * endRatio;
+				customVolumeStart = customVolumeTickStart + (customVolumeTickEnd - customVolumeTickStart) * Math.max(0.0, startRatio);
+				customVolumeEnd = customVolumeTickStart + (customVolumeTickEnd - customVolumeTickStart) * Math.min(1.0, endRatio);
 				tone.customVolumeStart = customVolumeStart;
 				tone.customVolumeEnd = customVolumeEnd;
-
 			}
 			transitionVolumeStart = transitionVolumeTickStart + (transitionVolumeTickEnd - transitionVolumeTickStart) * startRatio;
 			transitionVolumeEnd = transitionVolumeTickStart + (transitionVolumeTickEnd - transitionVolumeTickStart) * endRatio;
@@ -5222,7 +5255,7 @@ export class Synth {
 		const sampleTime: number = 1.0 / synth.samplesPerSecond;
 		tone.active = true;
 
-		if (instrument.type == InstrumentType.chip || instrument.type == InstrumentType.fm || instrument.type == InstrumentType.harmonics || instrument.type == InstrumentType.pwm || instrument.type == InstrumentType.customChipWave) {
+		if (instrument.type == InstrumentType.chip || instrument.type == InstrumentType.fm || instrument.type == InstrumentType.harmonics || instrument.type == InstrumentType.pwm || instrument.type == InstrumentType.customChipWave || instrument.type == InstrumentType.spectrum) {
 
 			const lfoEffectStart: number = Synth.getLFOAmplitude(instrument, secondsPerPart * instrument.LFOtime);
 			const lfoEffectEnd: number = Synth.getLFOAmplitude(instrument, secondsPerPart * instrument.nextLFOtime);
