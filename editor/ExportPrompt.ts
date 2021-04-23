@@ -43,6 +43,7 @@ function save(blob: Blob, name: string): void {
 export class ExportPrompt implements Prompt {
 	private readonly _fileName: HTMLInputElement = input({ type: "text", style: "width: 10em;", value: "BeepBox-Song", maxlength: 250, "autofocus": "autofocus" });
 	private readonly _computedSamplesLabel: HTMLDivElement = div({ style: "width: 10em;" }, new Text("0:00"));
+	private readonly _computedLoopIntroOffset: HTMLDivElement = div({ style: "width: 10em;" }, new Text("0.0"));
 	private readonly _enableIntro: HTMLInputElement = input({ type: "checkbox" });
 	private readonly _loopDropDown: HTMLInputElement = input({ style: "width: 2em;", type: "number", min: "1", max: "4", step: "1" });
 	private readonly _enableOutro: HTMLInputElement = input({ type: "checkbox" });
@@ -95,6 +96,10 @@ export class ExportPrompt implements Prompt {
 			"Length:",
 			this._computedSamplesLabel,
 		),
+		div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" },
+			"Loop Offset:",
+			this._computedLoopIntroOffset,
+		),
 		div({ style: "display: table; width: 100%;" },
 			div({ style: "display: table-row;" },
 				div({ style: "display: table-cell;" }, "Intro:"),
@@ -146,7 +151,10 @@ export class ExportPrompt implements Prompt {
 		this._exportButton.addEventListener("click", this._export);
 		this._cancelButton.addEventListener("click", this._close);
 		this._enableOutro.addEventListener("click", () => { (this._computedSamplesLabel.firstChild as Text).textContent = this.samplesToTime(this._doc.synth.getTotalSamples(this._enableIntro.checked, this._enableOutro.checked, +this._loopDropDown.value - 1)); });
-		this._enableIntro.addEventListener("click", () => { (this._computedSamplesLabel.firstChild as Text).textContent = this.samplesToTime(this._doc.synth.getTotalSamples(this._enableIntro.checked, this._enableOutro.checked, +this._loopDropDown.value - 1)); });
+		this._enableIntro.addEventListener("click", () => { 
+			(this._computedSamplesLabel.firstChild as Text).textContent = this.samplesToTime(this._doc.synth.getTotalSamples(this._enableIntro.checked, this._enableOutro.checked, +this._loopDropDown.value - 1));
+			(this._computedLoopIntroOffset.firstChild as Text).textContent = this.getLoopIntroOffset(this._enableIntro.checked);
+		 });
 		this._loopDropDown.addEventListener("change", () => { (this._computedSamplesLabel.firstChild as Text).textContent = this.samplesToTime(this._doc.synth.getTotalSamples(this._enableIntro.checked, this._enableOutro.checked, +this._loopDropDown.value - 1)); });
 		this.container.addEventListener("keydown", this._whenKeyPressed);
 
@@ -154,6 +162,17 @@ export class ExportPrompt implements Prompt {
 		ExportPrompt._validateFileName(null, this._fileName);
 
 		(this._computedSamplesLabel.firstChild as Text).textContent = this.samplesToTime(this._doc.synth.getTotalSamples(this._enableIntro.checked, this._enableOutro.checked, +this._loopDropDown.value - 1));
+		(this._computedLoopIntroOffset.firstChild as Text).textContent = this.getLoopIntroOffset(this._enableIntro.checked);
+	}
+
+	private getLoopIntroOffset(enableIntro: boolean): string {
+		if(enableIntro){
+			let samples = this._doc.synth.getTotalSamples(true, false, 1) - this._doc.synth.getTotalSamples(false, false, 1)
+			const miliseconds: number = Math.floor((samples / this._doc.synth.samplesPerSecond) * 100);
+			return (miliseconds / 100).toString();
+		} else {
+			return "0.00";
+		}
 	}
 
 	// Could probably be moved to doc or synth. Fine here for now until needed by something else.
@@ -161,6 +180,7 @@ export class ExportPrompt implements Prompt {
 		const rawSeconds: number = Math.round(samples / this._doc.synth.samplesPerSecond);
 		const seconds: number = rawSeconds % 60;
 		const minutes: number = Math.floor(rawSeconds / 60);
+		// is rounding 0.01 up for some reason
 		return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
 	}
 
